@@ -12,20 +12,20 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Scraper: Bands",
+            "name": "DarkLogo: Bands",
             "type": "python",
             "request": "launch",
-            "program": "scraper.py",
+            "program": "darklogo.py",
             "args": [
                 "bands"
             ],
             "console": "integratedTerminal"
         },
         {
-            "name": "Scraper: Logos",
+            "name": "DarkLogo: Logos",
             "type": "python",
             "request": "launch",
-            "program": "scraper.py",
+            "program": "darklogo.py",
             "args": [
                 "logos"
             ],
