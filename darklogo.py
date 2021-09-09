@@ -80,12 +80,12 @@ def logos(infile=None, outdir=None):
         logo = None
         # Check if logo image is present in the outdir directory.
         if (band['id'] in image_list):
-            tqdm.write(f"Logo image already exists for {band['name']} (id: {band['id']}). Skipping.")
+            tqdm.write(f"Logo already exists for {band['name']} (id: {band['id']}). Skipping.")
             continue
 
-        logo_url = get_logo_url(band['url'])
+        pbar.desc = f"Getting logo for {band['name']} (id: {band['id']})"
 
-        pbar.desc = f"Found logo URL for {band['name']} (id: {band['id']})"
+        logo_url = get_logo_url(band['url'])
 
         if logo_url:
             logo = get_logo(logo_url)
@@ -97,6 +97,9 @@ def logos(infile=None, outdir=None):
             image_list.append(band['id'])
         else:
             tqdm.write(f"No logo found for {band['name']} (id: {band['id']}). Skipping.")
+
+        pbar.close()
+    tqdm.write(f'Complete download of {len(image_list)}.')
 
 
 if __name__ == '__main__':
