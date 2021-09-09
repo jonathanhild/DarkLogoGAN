@@ -62,16 +62,16 @@ def bands(output=None):
 @main.command()
 @click.option('--infile', '-i', help='Input CSV file of band data. Defaults to ./data/band_data.csv')
 @click.option('--outdir', '-o', help='Output directory to save logo images. Defaults to ./data/images/')
-def logos(infile=None, outdir=None):
+def logos(infile=None, output_dir=None):
 
     if not infile:
         infile = os.path.join('data', 'band_data.csv')
-    if not outdir:
-        outdir = os.path.join('data', 'images')
+    if not output_dir:
+        output_dir = os.path.join('data', 'images')
 
     band_data = from_csv(infile)
 
-    image_list = [image.strip('.png') for image in os.listdir(outdir)]
+    image_list = [image.strip('.png') for image in os.listdir(output_dir)]
 
     pbar = tqdm(band_data)
 
@@ -91,7 +91,7 @@ def logos(infile=None, outdir=None):
             logo = get_logo(logo_url)
         if logo:
             filename = band['id'] + '.png'
-            filepath = os.path.join(outdir, filename)
+            filepath = os.path.join(output_dir, filename)
             save_msg = save_png_image(logo, filepath)
             tqdm.write(f"{save_msg} {filepath} for {band['name']} (id: {band['id']})")
             image_list.append(band['id'])
