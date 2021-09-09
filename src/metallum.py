@@ -89,10 +89,12 @@ def get_metallum_bands(genre, payload):
 def get_logo_url(band_url):
 
     r = _metallum_request(url=band_url)
-    soup = BeautifulSoup(r.content, 'lxml')
-    logo_link = soup.find('a', {'id': 'logo'})
     try:
+        soup = BeautifulSoup(r.content, 'lxml')
+        logo_link = soup.find('a', {'id': 'logo'})
         logo_url = logo_link['href']
+    except AttributeError:
+        logo_url = None
     except TypeError:
         logo_url = None
 
@@ -102,9 +104,11 @@ def get_logo_url(band_url):
 def get_logo(logo_url):
 
     r = _metallum_request(logo_url)
-    if r:
+    try:
         logo_bytes = BytesIO(r.content)
-    else:
+    except AttributeError:
+        logo_bytes = None
+    except OSError:
         logo_bytes = None
 
     return logo_bytes

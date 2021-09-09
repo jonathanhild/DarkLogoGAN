@@ -22,9 +22,8 @@ def from_csv(filename):
 def save_png_image(content, output):
 
     save_msg = 'Failed to save/convert'
-    image = Image.open(content)
     try:
-        image.convert('L')
+        image = Image.open(content).convert('L')
         image.save(output, 'PNG')
         save_msg = 'Successfully saved'
     except OSError as erro:
