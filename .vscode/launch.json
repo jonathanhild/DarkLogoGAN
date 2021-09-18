@@ -41,7 +41,9 @@
             "request": "launch",
             "program": "darklogo.py",
             "args": [
-                "logos"
+                "logos",
+                "--tarfile",
+                "data/logos.tar.gz"
             ],
             "console": "integratedTerminal"
         }

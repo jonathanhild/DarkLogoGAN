@@ -43,22 +43,25 @@ def bands(genre):
 
 
 @main.command()
-def logos():
+@click.option('--tarfile', '-t',
+              help='The file path of a tar file with logo images. Save time in downloading existing images.')
+def logos(tarfile):
 
     band_data = []
     existing_images = []
 
     data_dir = 'data'
     inpath = os.path.join(data_dir, '*.csv')
-    tarfilepath = os.path.join(data_dir, 'logos.tar.gz')
+    if not tarfile:
+        tarfile = os.path.join('data', 'logos.tar.gz')
     infiles = glob.glob(inpath)
     for file in infiles:
         data = from_csv(file)
         band_data += data
 
-    if os.path.exists(tarfilepath):
-        tqdm.write(f'Reading list of existing images from {tarfilepath}.')
-        existing_images = read_tarfile_contents(tarfilepath)
+    if os.path.exists(tarfile):
+        tqdm.write(f'Reading list of existing images from {tarfile}.')
+        existing_images = read_tarfile_contents(tarfile)
         tqdm.write('Complete. Starting logo crawler.')
     else:
         tqdm.write('No tar archive found. Starting logo crawler.')
