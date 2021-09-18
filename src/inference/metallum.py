@@ -9,10 +9,6 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 BASE_URL = 'https://www.metal-archives.com'
-BANDS_GENRE_ENDPOINT = 'browse/ajax-genre/g/'
-BANDS_GENRE_TAIL = '/json/1'
-BAND_ENDPOINT = '/band/view/id'
-LOGO_ENDPOINT = 'images/'
 HEADER = {'User-Agent': 'Mozilla/5.0 Gecko/20100101 Firefox/90.0'}
 
 
@@ -31,7 +27,7 @@ def _extract_band_id(url):
     return None
 
 
-def _metallum_request(endpoint=None, url=None, id=None, tail=None, params=None):
+def metallum_request(timeout_count, endpoint=None, url=None, id=None, tail=None, params=None):
 
     if not id:
         id = ''
@@ -40,31 +36,26 @@ def _metallum_request(endpoint=None, url=None, id=None, tail=None, params=None):
     if not url:
         url = urljoin(BASE_URL, url=f'{endpoint}{id}{tail}')
 
-    timeout_count = 0
+    err_msg = None
 
-    while timeout_count < 5:  # Loop 10 times before quitting
-        try:
-            r = requests.get(url, headers=HEADER, params=params)
-            r.raise_for_status()
-            return r
-        except requests.exceptions.HTTPError as errh:
-            timeout_count += 1
-            err_msg = f'{errh}. Retrying attempt {timeout_count} of 5.'
-            tqdm.write(err_msg)
-            time.sleep(random.uniform(3.0, 4.0))  # Wait between 3 and 4 seconds before resuming
-            r = None
-        except requests.exceptions.ConnectionError as errc:
-            tqdm.write('Connection failed.')
-            r = None
+    try:
+        r = requests.get(url, headers=HEADER, params=params)
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as errh:
+        err_msg = f'{errh}. Retrying attempt {timeout_count} of 5.'
+        time.sleep(random.uniform(3.0, 4.0))  # Wait between 3 and 4 seconds before resuming
+        r = None
+    except requests.exceptions.ConnectionError as errc:
+        err_msg = 'Connection failed.'
+        r = None
 
-    return r
+    return r, err_msg
 
 
-def get_metallum_bands(genre, payload):
+def get_metallum_bands(r, genre, payload):
 
     data_page = []
 
-    r = _metallum_request(endpoint=BANDS_GENRE_ENDPOINT, id=genre, tail=BANDS_GENRE_TAIL, params=payload)
     json = r.json()
 
     total_records = json['iTotalRecords']
@@ -86,9 +77,8 @@ def get_metallum_bands(genre, payload):
     return payload, total_records, data_page
 
 
-def get_logo_url(band_url):
+def get_logo_url(r):
 
-    r = _metallum_request(url=band_url)
     try:
         soup = BeautifulSoup(r.content, 'lxml')
         logo_link = soup.find('a', {'id': 'logo'})
@@ -101,9 +91,8 @@ def get_logo_url(band_url):
     return logo_url
 
 
-def get_logo(logo_url):
+def get_logo(r):
 
-    r = _metallum_request(logo_url)
     try:
         logo_bytes = BytesIO(r.content)
     except AttributeError:
