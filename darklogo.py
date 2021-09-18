@@ -1,19 +1,15 @@
 # Copyright 2021 jonathan.
 # SPDX-License-Identifier: GPL-2.0-only
 
+import glob
 import os
+from datetime import datetime
 
 import click
 from tqdm import tqdm
 
-from src.inference.data import from_csv, save_png_image, to_csv
-from src.inference.metallum import metallum_request, get_logo, get_logo_url, get_metallum_bands
-
-GENRES = ['black', 'death']
-BANDS_GENRE_ENDPOINT = 'browse/ajax-genre/g/'
-BANDS_GENRE_TAIL = '/json/1'
-BAND_ENDPOINT = '/band/view/id'
-LOGO_ENDPOINT = 'images/'
+from src.crawler import MetallumBands, MetallumLogo
+from src.data import from_csv, read_tarfile_contents, save_png_image, to_csv
 
 
 @click.group()
@@ -23,122 +19,71 @@ def main():
 
 
 @main.command()
-@click.option('--output', '-o', help='Relative path and filename for band data csv')
-def bands(output=None):
+@click.option('--genre', '-g', help="Specify the heavy metal genre: 'black' or 'death'")
+def bands(genre):
 
-    if not output:
-        output = os.path.join('data', 'band_data.csv')
+    start = datetime.now()
 
-    band_data = []
+    file_time = start.strftime('%y%m%d')
+    filename = f'{genre}_metal_data_{file_time}.csv'
+    filepath = os.path.join('data', filename)
 
-    for genre in GENRES:
-        total_records = 999_999  # Large default value to allow for request initialization.
-        payload = {
-            'sEcho': 1,
-            'iDisplayStart': 0,
-            'iDisplayLength': 500
-        }
+    bands = MetallumBands()
 
-        pbar = tqdm(total=total_records)
-        pbar.total = total_records
+    pbar = tqdm(bands.total, dynamic_ncols=True)
 
-        while payload['iDisplayStart'] < total_records:
+    while bands.keep_crawling():
+        msg = bands.crawl_bands(genre)
+        pbar.total = bands.total
+        pbar.desc = msg
+        pbar.update(bands.end - bands.start)
+        # Incrementally save band data to csv file
+        to_csv(bands.bands, filepath)
 
-            bands_from = payload['iDisplayStart'] + 1
-            if (payload['iDisplayStart'] + payload['iDisplayLength']) > total_records:
-                bands_to = total_records
-            else:
-                bands_to = payload['iDisplayStart'] + payload['iDisplayLength']
-            pbar.desc = f"Fetching bands {bands_from} to {bands_to} for genre '{genre}'"
-
-            for counter in range(5):
-                r, err_msg = metallum_request(
-                    timeout_count=counter, endpoint=BANDS_GENRE_ENDPOINT,
-                    id=genre, tail=BANDS_GENRE_TAIL, params=payload
-                )
-                if err_msg:
-                    tqdm.write(err_msg)
-                    continue
-                else:
-                    break
-
-            payload, total_records, data_page = get_metallum_bands(r, genre, payload)
-            band_data += data_page
-            pbar.total = total_records
-
-            payload['iDisplayStart'] += len(data_page)
-
-            pbar.update(len(data_page))
-
-            # Save band data to csv file
-            to_csv(band_data, output)
+    pbar.close()
+    runtime = str(datetime.now() - start)
+    tqdm.write(f'Crawling finished in {runtime} for {genre.title()} Metal. {bands.total} saved to {filepath}.')
 
 
 @main.command()
-@click.option('--infile', '-i', help='Input CSV file of band data. Defaults to ./data/band_data.csv')
-@click.option('--outdir', '-o', help='Output directory to save logo images. Defaults to ./data/images/')
-def logos(infile=None, outdir=None):
+def logos():
 
-    if not infile:
-        infile = os.path.join('data', 'band_data.csv')
-    if not outdir:
-        outdir = os.path.join('data', 'images')
+    band_data = []
+    existing_images = []
 
-    band_data = from_csv(infile)
+    data_dir = 'data'
+    inpath = os.path.join(data_dir, '*.csv')
+    tarfilepath = os.path.join(data_dir, 'logos.tar.gz')
+    infiles = glob.glob(inpath)
+    for file in infiles:
+        data = from_csv(file)
+        band_data += data
 
-    image_list = [image.strip('.png') for image in os.listdir(outdir)]
+    if os.path.exists(tarfilepath):
+        tqdm.write(f'Reading list of existing images from {tarfilepath}.')
+        existing_images = read_tarfile_contents(tarfilepath)
+        tqdm.write('Complete. Starting logo crawler.')
+    else:
+        tqdm.write('No tar archive found. Starting logo crawler.')
 
-    pbar = tqdm(band_data)
+    pbar = tqdm(band_data, dynamic_ncols=True)
 
     for band in pbar:
-
-        logo_url = None
-        logo = None
-        # Check if logo image is present in the outdir directory.
-        if (band['id'] in image_list):
-            tqdm.write(f"Logo already exists for {band['name']} (id: {band['id']}). Skipping.")
-            band['logo_status'] = 'downloaded'
+        id = band['id']
+        name = band['name']
+        band_msg = f'{name} (id: {id})'
+        if id in existing_images:
+            tqdm.write(f'Image already downloaded/archived for {band_msg}.')
             continue
-
-        pbar.desc = f"Getting logo for {band['name']} (id: {band['id']})"
-
-        for counter in range(5):
-            r, err_msg = metallum_request(timeout_count=counter, url=band['url'])
-            if err_msg:
-                tqdm.write(err_msg)
-                continue
-            else:
-                break
-
-        logo_url = get_logo_url(r)
-
-        if logo_url:
-            for counter in range(5):
-                r, err_msg = metallum_request(timeout_count=counter, url=logo_url)
-                logo = get_logo(r)
-                if err_msg:
-                    tqdm.write(err_msg)
-                    continue
-                else:
-                    break
         else:
-            continue
-
-        if logo:
-            filename = band['id'] + '.png'
-            filepath = os.path.join(outdir, filename)
-            save_msg = save_png_image(logo, filepath)
-            band['logo_status'] = 'downloaded'
-            tqdm.write(f"{save_msg} {filepath} for {band['name']} (id: {band['id']})")
-            image_list.append(band['id'])
-        else:
-            tqdm.write(f"No logo found for {band['name']} (id: {band['id']}). Skipping.")
-            band['logo_status'] = 'no logo'
-            continue
-
-    tqdm.write(f'Complete download of {len(image_list)}.')
-
-    to_csv(band_data, infile)
+            pbar.desc = f'Searching for logo for {band_msg}.'
+            logo = MetallumLogo(band_id=id)
+            img_msg = logo.msg
+            if logo.image:
+                filename = f'{id}.png'
+                filepath = os.path.join(data_dir, filename)
+                save_msg = save_png_image(logo.image, filepath)
+                tqdm.write(f'{img_msg} {filename} for {band_msg}. {save_msg}.')
 
 
 if __name__ == '__main__':

@@ -12,12 +12,26 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "DarkLogo: Bands",
+            "name": "DarkLogo: Black Metal Bands",
             "type": "python",
             "request": "launch",
             "program": "darklogo.py",
             "args": [
-                "bands"
+                "bands",
+                "--genre",
+                "black"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "DarkLogo: Death Metal Bands",
+            "type": "python",
+            "request": "launch",
+            "program": "darklogo.py",
+            "args": [
+                "bands",
+                "--genre",
+                "death"
             ],
             "console": "integratedTerminal"
         },
