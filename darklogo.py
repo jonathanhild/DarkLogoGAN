@@ -6,8 +6,8 @@ import os
 import click
 from tqdm import tqdm
 
-from src.data import from_csv, save_png_image, to_csv
-from src.metallum import get_logo, get_logo_url, get_metallum_bands
+from src.inference.data import from_csv, save_png_image, to_csv
+from src.inference.metallum import get_logo, get_logo_url, get_metallum_bands
 
 GENRES = ['black', 'death']
 
