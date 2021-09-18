@@ -1,6 +1,3 @@
-# Copyright 2021 jonathan.
-# SPDX-License-Identifier: GPL-2.0-only
-
 import glob
 import os
 from datetime import datetime
