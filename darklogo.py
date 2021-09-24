@@ -60,7 +60,7 @@ def logos(tarfile):
         band_data += data
 
     if os.path.exists(tarfile):
-        tqdm.write(f'Reading list of existing images from {tarfile}.')
+        tqdm.write(f'Reading list of images from {tarfile}.')
         existing_images = read_tarfile_contents(tarfile)
         tqdm.write('Complete. Starting logo crawler.')
     else:
