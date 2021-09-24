@@ -145,6 +145,9 @@ class MetallumLogo():
         return logo_url
 
     def _scrape_logo(self):
+
+        image = None
+
         try:
             r = requests.get(self.logo_url)
             r.raise_for_status()
