@@ -6,7 +6,8 @@ import click
 from tqdm import tqdm
 
 from src.crawler import MetallumBands, MetallumLogo
-from src.data import from_csv, read_tarfile_contents, save_png_image, to_csv
+from src.data import (from_csv, make_tarfile, open_tarfile, read_tarfile_contents,
+                      save_png_image, to_csv)
 
 
 @click.group()
@@ -43,27 +44,29 @@ def bands(genre):
 
 
 @main.command()
-@click.option('--tarfile', '-t',
+@click.option('--tarpath', '-t',
               help='The file path of a tar file with logo images. Save time in downloading existing images.')
-def logos(tarfile):
+def logos(tarpath):
 
     band_data = []
     existing_images = []
 
     data_dir = 'data'
     inpath = os.path.join(data_dir, '*.csv')
-    if not tarfile:
-        tarfile = os.path.join('data', 'logos.tar.gz')
+    if not tarpath:
+        tarpath = os.path.join('data', 'logos.tar.gz')
     infiles = glob.glob(inpath)
     for file in infiles:
         data = from_csv(file)
         band_data += data
 
-    if os.path.exists(tarfile):
-        tqdm.write(f'Reading list of images from {tarfile}.')
-        existing_images = read_tarfile_contents(tarfile)
+    if os.path.exists(tarpath):
+        tar = open_tarfile(tarpath)
+        tqdm.write(f'Reading list of images from {tarpath}.')
+        existing_images = read_tarfile_contents(tarpath)
         tqdm.write('Complete. Starting logo crawler.')
     else:
+        tar = make_tarfile(tarpath)
         tqdm.write('No tar archive found. Starting logo crawler.')
 
     pbar = tqdm(band_data, dynamic_ncols=True)
@@ -83,7 +86,11 @@ def logos(tarfile):
                 filename = f'{id}.png'
                 filepath = os.path.join(data_dir, filename)
                 save_msg = save_png_image(logo.image, filepath)
+                tar.add(filepath, arcname=filename)
+                os.remove(filepath)
                 tqdm.write(f'{img_msg} {filename} for {band_msg}. {save_msg}.')
+
+    tar.close()
 
 
 if __name__ == '__main__':

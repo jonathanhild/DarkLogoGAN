@@ -42,7 +42,7 @@
             "program": "darklogo.py",
             "args": [
                 "logos",
-                "--tarfile",
+                "--tarpath",
                 "data/logos.tar.gz"
             ],
             "console": "integratedTerminal"

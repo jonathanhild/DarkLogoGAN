@@ -1,8 +1,7 @@
-import os
 import csv
 import tarfile
 
-from PIL import Image, UnidentifiedImageError
+from PIL import UnidentifiedImageError
 
 
 def to_csv(data, filename):
@@ -19,6 +18,7 @@ def from_csv(filename):
     with open(filename, mode='r') as csvfile:
         reader = csv.DictReader(csvfile)
         band_data = list(reader)
+
         return band_data
 
 
@@ -37,24 +37,25 @@ def save_png_image(image, output):
     return msg
 
 
-def read_tarfile_contents(filepath):
+def make_tarfile(tarpath):
+    tar = tarfile.open(tarpath, 'w:gz')
+
+    return tar
+
+
+def open_tarfile(tarpath):
+    tar = tarfile.open(tarpath, 'a:gz')
+
+    return tar
+
+
+def read_tarfile_contents(tarpath):
 
     image_list = []
-    tar = tarfile.open(filepath, 'r:gz')
+    tar = tarfile.open(tarpath, 'r:gz')
     members = tar.getmembers()
     for member in members:
         id = member.name
         image_list.append(id.strip('.png'))
+
     return image_list
-
-
-def make_tarfile(tarfilename, dir):
-
-    with tarfile.open(tarfilename, 'W:gz') as tar:
-        tar.add(dir, arcname=os.path)
-
-
-def extract_from_tarfile(tarfilepath, id, outfilepath):
-    filename = f'{id}.png'
-    with tarfile.open(tarfilepath, 'r:gz') as tar:
-        tar.extract(filename, path=outfilepath)
